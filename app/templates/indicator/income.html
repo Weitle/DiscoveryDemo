@@ -1,0 +1,170 @@
+{%extends 'base.html'%}
+{%block content%}
+    <h1 class="page-header">主营业务收入 <small>整体情况</small> </h1>
+    <div class="row">
+        <div class="col-md-4">
+            <div id="income-annual" style="width:100%;height:400px;"></div>
+        </div>
+        <div class="col-md-8">
+            <div id="income-monthly" style="width:100%;height:400px;"></div>
+        </div>
+    </div>
+    <h1 class="page-header" id="income-business">业务分布 <small></small></h1>
+    <div class="row">
+        <div class="col-md-8"></div>
+        <div class="col-md-4"></div>
+    </div>
+    <h1 class="page-header" id="income-district">地域分布 <small></small></h1>
+    <div class="row">
+        <div class="col-md-4"></div>
+        <div class="col-md-8"></div>
+    </div>
+{%endblock%}
+{%block script%}
+    <script src="{{url_for('static', filename='js/echarts.min.js')}}"></script>
+    <script>
+        $(document).ready(function(){
+            // 获取并显示本年度每月收入
+            var current = new Date();
+            var year = current.getFullYear();
+            var month = current.getMonth();
+            $('#income-business small').text(year + "年" + (month+1) + "月");
+            $('#income-district small').text(year + "年" + (month+1) + "月");
+            display_income(year, month);
+        });
+
+        function display_income(year, month){
+            $.ajax({
+                url: "{{url_for('analysis.get_income_monthly')}}",
+                type:'POST',
+                headers:{
+                    'X-CSRFToken': "{{csrf_token()}}"
+                },
+                data:{
+                    'year': year
+                },
+                dataType:'json',
+                success:function(response){
+                    //console.log(response);
+                    var incomes = response['incomes'];
+                    var target = response['target'];
+                    var total = 0;
+                    incomes.forEach(function(income){
+                        total += income;
+                    });
+                    var rate = (total / target * 100).toFixed(2);
+                    var rate_time = ((month + 1) / 12.0 * 100).toFixed(2);
+                    var incomeAnnualChart = echarts.init(document.getElementById('income-annual'));
+                    var incomeMonthlyChart = echarts.init(document.getElementById('income-monthly'));
+                    var optionAnnual = {
+                        title:{
+                            text: '本月：' + incomes[month] + '，累计：' + total,
+                            subtext: '完成率：' + rate + '%，时序进度：' + rate_time + '%'
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: "{a} <br/>{b} : {c}%"
+                        },
+                        toolbox: {
+                            show : true,
+                            feature : {
+                                mark : {show: true},
+                                dataView : {show: true, readOnly: false},
+                                restore : {show: true},
+                                saveAsImage : {show: true}
+                            }
+                        },
+                        series : [
+                            {
+                                name:'总收入',
+                                type:'gauge',
+                                center: ['50%','55%'],
+                                splitNumber: 10,       // 分割段数，默认为5
+                                axisLine: {            // 坐标轴线
+                                    lineStyle: {       // 属性lineStyle控制线条样式
+                                        color: [[0.2, '#91C7AE'],[0.8, '#63869E'],[1, '#C23531']], 
+                                        width: 10
+                                    }
+                                },
+                                axisTick: {            // 坐标轴小标记
+                                    splitNumber: 10,   // 每份split细分多少段
+                                    length :12,        // 属性length控制线长
+                                    lineStyle: {       // 属性lineStyle控制线条样式
+                                        color: 'auto'
+                                    }
+                                },
+                                axisLabel: {           // 坐标轴文本标签，详见axis.axisLabel
+                                    textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+                                        color: 'auto'
+                                    }
+                                },
+                                splitLine: {           // 分隔线
+                                    show: true,        // 默认显示，属性show控制显示与否
+                                    length :30,         // 属性length控制线长
+                                    lineStyle: {       // 属性lineStyle（详见lineStyle）控制线条样式
+                                        color: 'auto'
+                                    }
+                                },
+                                pointer : {
+                                    width : 5
+                                },
+                                title : {
+                                    show : true,
+                                    offsetCenter: [0, '-40%'],       // x, y，单位px
+                                    textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+                                        fontWeight: 'bolder'
+                                    }
+                                },
+                                detail : {
+                                    formatter:'{value}%',
+                                    textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+                                        color: 'auto',
+                                        //fontSize: 12,
+                                        fontWeight: 'bolder'
+                                    }
+                                },
+                                data:[{value: rate, name: '完成率'}]
+                            }
+                        ]
+                    };
+                    var optionMonthly = {
+                        title:{
+                            text:'月度收入'
+                        },
+                        legend:{
+                            data:['业务收入']
+                        },
+                        tooltip: {
+                            trigger: 'axis',
+                            formatter: "{b} : {c}"
+                        },
+                        toolbox: {
+                            show : true,
+                            feature : {
+                                mark : {show: true},
+                                dataView : {show: true, readOnly: false},
+                                restore : {show: true},
+                                saveAsImage : {show: true}
+                            }
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            name: '业务收入',
+                            data: incomes,
+                            type: 'bar'
+                        }]
+                    };
+                    incomeAnnualChart.setOption(optionAnnual);
+                    incomeMonthlyChart.setOption(optionMonthly);
+                }
+            });
+            
+        }
+    </script>
+{%endblock%}
