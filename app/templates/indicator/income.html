@@ -9,15 +9,15 @@
             <div id="income-monthly" style="width:100%;height:400px;"></div>
         </div>
     </div>
-    <h1 class="page-header" id="income-business">业务分布 <small></small></h1>
+    <h2>业务分布</h2>
     <div class="row">
-        <div class="col-md-8"></div>
-        <div class="col-md-4"></div>
+        <div class="col-md-12">
+            <div id="income-business" style="width:100%;height: 400px;"></div>
+        </div>
     </div>
-    <h1 class="page-header" id="income-district">地域分布 <small></small></h1>
+    <h2>地域分布</h2>
     <div class="row">
-        <div class="col-md-4"></div>
-        <div class="col-md-8"></div>
+        <div class="col-md-12"></div>
     </div>
 {%endblock%}
 {%block script%}
@@ -28,11 +28,11 @@
             var current = new Date();
             var year = current.getFullYear();
             var month = current.getMonth();
-            $('#income-business small').text(year + "年" + (month+1) + "月");
-            $('#income-district small').text(year + "年" + (month+1) + "月");
+            
             display_income(year, month);
+            display_income_business(year, month);
         });
-
+        // 显示本年度每月收入及累计完成情况
         function display_income(year, month){
             $.ajax({
                 url: "{{url_for('analysis.get_income_monthly')}}",
@@ -45,12 +45,13 @@
                 },
                 dataType:'json',
                 success:function(response){
-                    //console.log(response);
                     var incomes = response['incomes'];
                     var target = response['target'];
+                    var rate_monthly = [];
                     var total = 0;
                     incomes.forEach(function(income){
                         total += income;
+                        rate_monthly.push((total / target * 100).toFixed(2));      // 累计完成率
                     });
                     var rate = (total / target * 100).toFixed(2);
                     var rate_time = ((month + 1) / 12.0 * 100).toFixed(2);
@@ -128,15 +129,21 @@
                         ]
                     };
                     var optionMonthly = {
-                        title:{
+                        /*title:{
                             text:'月度收入'
-                        },
+                        },*/
                         legend:{
-                            data:['业务收入']
+                            data:['业务收入', '累计完成率']
                         },
                         tooltip: {
                             trigger: 'axis',
-                            formatter: "{b} : {c}"
+                            formatter: "{b0}<br/><ul><li>{a0} : {c0}万</li><li>{a1} ：{c1}%</li></ul>",
+                            /*axisPointer:{
+                                type:'cross',
+                                crossStyle:{
+                                    color:'#999'
+                                },
+                            }*/
                         },
                         toolbox: {
                             show : true,
@@ -151,17 +158,137 @@
                             type: 'category',
                             data: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
                         },
-                        yAxis: {
-                            type: 'value'
-                        },
-                        series: [{
-                            name: '业务收入',
-                            data: incomes,
-                            type: 'bar'
-                        }]
+                        yAxis: [
+                            {
+                                type: 'value',
+                                name: '月收入/万',
+                                splitLine: false
+                            },
+                            {
+                                type:'value',
+                                name:'完成率（%）',
+                                min: 0,
+                                max:100,
+                            }
+                        ],
+                        series: [
+                            {
+                                name: '业务收入',
+                                data: incomes,
+                                type: 'bar',
+                                yAxisIndex: 0
+                            },
+                            {
+                                name: '累计完成率',
+                                data: rate_monthly,
+                                type: 'line',
+                                smooth: true,
+                                yAxisIndex: 1
+                            }
+                        ]
                     };
                     incomeAnnualChart.setOption(optionAnnual);
                     incomeMonthlyChart.setOption(optionMonthly);
+                }
+            });
+            
+        }
+    
+        // 按业务类型显示每月收入分布情况，默认显示当前月份
+        function display_income_business(year, month){
+            if(month == 0){
+                year = year-1;
+                month = 12;
+            }
+            var months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            
+            $.ajax({
+                url:"{{url_for('analysis.get_income_business_monthly')}}",
+                type:'POST',
+                headers:{
+                    'X-CSRFToken': "{{csrf_token()}}"
+                },
+                dataType: 'json',
+                data: {
+                    'year':year,
+                    'month':month
+                },
+                success:function(response){
+                    // 返回一个数组，对应每月业务收入，每个数组元素为一个字典，{业务类型：收入}
+                    var incomes = response['incomes'];
+                    var business_types = Object.keys(incomes[0]);
+                    var income_options = [];
+                    
+                    for(var i = 0; i < month; i++){
+                        // 生成每个月数据
+                        datas = [];     // 柱状图数据
+                        piedatas = [];  // 饼图数据
+                        for(var index in business_types){
+                            var btype = business_types[index];
+                            datas.push(incomes[i][btype]);
+                            piedatas.push({
+                                'name':btype,
+                                'value':incomes[i][btype]
+                            });
+                        }
+                        
+                        income_options.push({
+                            title:{text: year + '年' + (i+1) + '月业务收入分布情况'},
+                            series:[
+                                {'data':datas},         // 柱状图
+                                {'data':piedatas}       // 饼图
+                            ]
+                        });
+                    }
+                    var option = {
+                        baseOption:{
+                            timeline:{
+                                axisType:'category',
+                                autoPlay:false,
+                                currentIndex:month-1,
+                                playInterval:1000,
+                                data:months.slice(0, month),
+                            },
+                            legend:{
+                                x:'right',
+                                data: business_types
+                            },
+                            xAxis:[
+                                {
+                                    type:'category',
+                                    data:business_types
+                                }
+                            ],
+                            yAxis:[
+                                {
+                                    type:'value',
+                                    name:'收入/万元'
+                                }
+                            ],
+                            series: [
+                                {
+                                    name:'业务收入',
+                                    type: 'bar',
+                                    barWidth:'30%',
+                                    itemStyle:{
+                                        normal:{
+                                            color:'#293C55'
+                                        }
+                                    }
+                                },
+                                {
+                                    name:'占比',
+                                    type:'pie',
+                                     center:['75%', '35%'], radius:'28%', z:100
+                                }
+                            ]
+                        },
+                        options:income_options
+                    }
+
+                    var incomeBusinessChart = echarts.init(document.getElementById('income-business'));
+                    incomeBusinessChart.setOption(option);
+
                 }
             });
             
