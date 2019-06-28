@@ -9,31 +9,73 @@
             <div id="income-monthly" style="width:100%;height:400px;"></div>
         </div>
     </div>
-    <h2>业务分布</h2>
+    <h2>分公司收入完成情况</h2>
+    <form action="" class="form-inline" method="POST" id="income-district-form">
+        <div class="form-group">
+            <label for="income-district-year">年份</label>
+            <input type="text" class="form-control" id="income-district-year" name="year" readonly/>
+        </div>
+        <div class="form-group">
+            <label for="income-district-month">月份</label>
+            <select name="month" id="income-district-month" class="form-control"></select>
+        </div>
+        <button class="btn btn-default" type="submit">查询</button>
+    </form>
+    <div class="row">
+        <div class="col-md-9" id="income-district-chart"></div>
+        <div class="col-md-3" id="income-district-info"></div>
+    </div>
+    <h2>各业务收入完成情况</h2>
+    <form action="" class="form-inline" method="POST" id="income-business-form">
+        <div class="form-group">
+            <label for="income-business-year">年份</label>
+            <input type="text" class="form-control" id="income-business-year" name="year" readonly/>
+        </div>
+        <div class="form-group">
+            <label for="income-business-month">月份</label>
+            <select name="month" id="income-business-month" class="form-control"></select>
+        </div>
+        <button class="btn btn-default" type="submit">查询</button>
+    </form>
     <div class="row">
         <div class="col-md-12">
             <div id="income-business" style="width:100%;height: 400px;"></div>
         </div>
     </div>
-    <h2>地域分布</h2>
-    <div class="row">
-        <div class="col-md-12"></div>
-    </div>
+    
 {%endblock%}
 {%block script%}
     <script src="{{url_for('static', filename='js/echarts.min.js')}}"></script>
     <script>
         $(document).ready(function(){
-            // 获取并显示本年度每月收入
+            var months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
             var current = new Date();
             var year = current.getFullYear();
             var month = current.getMonth();
-            
+            if(month == 0){
+                year -= 1;
+                month = 12;
+            }
+            // 加载收入地域分布和业务分布的年月
+            $('#income-district-year, #income-business-year').val(year);
+            for(var i = 0; i < month; i++){
+                if(i == month-1){
+                    $('#income-district-month, #income-business-month').append("<option value='" + (i+1) + "' selected>" + months[i] + "</option>");
+                } else{
+                    $('#income-district-month, #income-business-month').append("<option value='" + (i+1) + "'>" + months[i] + "</option>");
+                }
+            }
+            // 获取并显示本年度每月收入
             display_income(year, month);
+
+            // 显示每月度分公司收入完成情况
+            display_income_district(year, month);
+            
             display_income_business(year, month);
         });
-        // 显示本年度每月收入及累计完成情况
+        // 显示本年度每月公司整体收入及累计完成情况
         function display_income(year, month){
+            var months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
             $.ajax({
                 url: "{{url_for('analysis.get_income_monthly')}}",
                 type:'POST',
@@ -41,7 +83,8 @@
                     'X-CSRFToken': "{{csrf_token()}}"
                 },
                 data:{
-                    'year': year
+                    'year': year,
+                    'month':month
                 },
                 dataType:'json',
                 success:function(response){
@@ -54,12 +97,12 @@
                         rate_monthly.push((total / target * 100).toFixed(2));      // 累计完成率
                     });
                     var rate = (total / target * 100).toFixed(2);
-                    var rate_time = ((month + 1) / 12.0 * 100).toFixed(2);
+                    var rate_time = (month / 12.0 * 100).toFixed(2);
                     var incomeAnnualChart = echarts.init(document.getElementById('income-annual'));
                     var incomeMonthlyChart = echarts.init(document.getElementById('income-monthly'));
                     var optionAnnual = {
                         title:{
-                            text: '本月：' + incomes[month] + '，累计：' + total,
+                            text: '本月：' + incomes[month-1] + '，累计：' + total,
                             subtext: '完成率：' + rate + '%，时序进度：' + rate_time + '%'
                         },
                         tooltip: {
@@ -156,7 +199,7 @@
                         },
                         xAxis: {
                             type: 'category',
-                            data: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+                            data: months.slice(0,month)
                         },
                         yAxis: [
                             {
@@ -176,6 +219,7 @@
                                 name: '业务收入',
                                 data: incomes,
                                 type: 'bar',
+                                barWidth:'50%',
                                 yAxisIndex: 0
                             },
                             {
@@ -194,6 +238,78 @@
             
         }
     
+        function display_income_district(year, month){
+            var months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            // 对月份进行处理
+            if(month == 0){
+                year = year - 1;
+                month = 12;
+            }
+            $.ajax({
+                url:"{{url_for('analysis.get_income_district_monthly')}}",
+                type:'POST',
+                headers:{
+                    'X-CSRFToken': "{{csrf_token()}}"
+                },
+                dataType: 'json',
+                data: {
+                    'year':year,
+                    'month':month
+                },
+                success:function(response){
+                    var districts = response['districts'];
+                    var incomes = response['incomes'];
+                    var targets = response['targets'];
+                    // 各分公司累计完成投资
+                    var total = [];
+                    // 各分公司累计完成率
+                    var rate = [];
+                    // 各分公司当月完成率
+                    var rate_current = [];
+                    for(var i = 0; i < districts.length(); i++){
+                        var sum = 0;
+                        for(var m = 0; m < incomes.length(); m++){
+                            sum += incomes[m][i];
+                        }
+                        total.push(parseInt(sum));
+                        rate.push((sum/targets[i] * 100).toFixed(2));
+                        rate_current.push((incomes[incomes.length()-1][i]/targets[i]*100).toFixed(2));
+                    }
+                    // 排序
+
+                    if(incomes.length() > 1){
+                        // 本月收入增长率
+                        var rate_increment = [];
+                        for(var i = 0; i < districts.length(); i++){
+                            rate_increment.push((incomes[incomes.length()-1]/incomes[incomes.length()-2]*100).toFixed(2));
+                        }
+                    }
+
+                }
+            });
+        }
+
+        // 对一个数组排序，返回排序后各元素在原数组中的索引
+        function sorted_index(arr){
+            var indexes = [];
+            for(var i = 0; i < arr.length(); i++){
+                indexes.push(i);
+            }
+            // 冒泡排序，降序
+            for(var i = 0; i < arr.length() - 1; i++){
+                for(var j = i+1; j < arr.length(); j++){
+                    if(arr[i] < arr[j]){
+                        var temp = arr[i];
+                        var temp_index = indexes[i];
+                        arr[i] = arr[j];
+                        indexes[i] = indexes[j];
+                        arr[j] = temp;
+                        indexes[j] = temp_index;                        
+                    }
+                }
+            }
+            return indexes;
+        }
         // 按业务类型显示每月收入分布情况，默认显示当前月份
         function display_income_business(year, month){
             if(month == 0){
@@ -270,11 +386,6 @@
                                     name:'业务收入',
                                     type: 'bar',
                                     barWidth:'30%',
-                                    itemStyle:{
-                                        normal:{
-                                            color:'#293C55'
-                                        }
-                                    }
                                 },
                                 {
                                     name:'占比',
