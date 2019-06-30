@@ -1,6 +1,11 @@
 {%extends 'base.html'%}
+<!--
+{%block style%}
+    <link rel="stylesheet" href="{{url_for('static', filename='bootstrap/css/bootstrap-switch.min.css')}}">
+{%endblock%}
+-->
 {%block content%}
-    <h1 class="page-header">主营业务收入 <small>整体情况</small> </h1>
+    <h1 class="page-header">主营业务收入 <small>整体情况</small></h1>
     <div class="row">
         <div class="col-md-4">
             <div id="income-annual" style="width:100%;height:400px;"></div>
@@ -10,6 +15,7 @@
         </div>
     </div>
     <h2>分公司收入完成情况</h2>
+<!--
     <form action="" class="form-inline" method="POST" id="income-district-form">
         <div class="form-group">
             <label for="income-district-year">年份</label>
@@ -19,24 +25,50 @@
             <label for="income-district-month">月份</label>
             <select name="month" id="income-district-month" class="form-control"></select>
         </div>
-        <button class="btn btn-default" type="submit">查询</button>
+    -->
+        <!--
+        <div class="form-group">
+            <div class="bootstrap-switch bootstrap-switch-mini">
+                <input type="checkbox" checked data-on-text="累计" data-off-text="本月" data-on-color="primary" data-off-color="danger">
+            </div>
+        </div>
+    -->
+    <!--
+        <button class="btn btn-default" type="submit"> 查看 </button>
     </form>
-    <div class="row">
-        <div class="col-md-9" id="income-district-chart"></div>
-        <div class="col-md-3" id="income-district-info"></div>
+-->
+    <div class="row" style="margin-top: 15px;">
+        <div class="col-md-9">
+            <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#incomes-district-current" aria-controls="incomes-district-current" role="tab" data-toggle="tab">累计收入</a></li>
+                <li role="presentation"><a href="#incomes-district-this-month" aria-controls="incomes-district-this-month" role="tab" data-toggle="tab">本月收入</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="incomes-district-current" role="tabpanel">
+                    <div style="width:100%;height: 400px;" id="incomes-district-chart-current"></div>
+                </div>
+                <div class="tab-pane" id="incomes-district-this-month" role="tabpanel">
+                    <div style="width:100%;height: 400px;" id="incomes-district-chart-this-month"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3" style="height: 400px;" id="incomes-district-info"></div>
     </div>
     <h2>各业务收入完成情况</h2>
+    <!--
     <form action="" class="form-inline" method="POST" id="income-business-form">
         <div class="form-group">
             <label for="income-business-year">年份</label>
             <input type="text" class="form-control" id="income-business-year" name="year" readonly/>
         </div>
+    
         <div class="form-group">
             <label for="income-business-month">月份</label>
             <select name="month" id="income-business-month" class="form-control"></select>
         </div>
         <button class="btn btn-default" type="submit">查询</button>
     </form>
+-->
     <div class="row">
         <div class="col-md-12">
             <div id="income-business" style="width:100%;height: 400px;"></div>
@@ -45,9 +77,13 @@
     
 {%endblock%}
 {%block script%}
+<!--
+    <script src="{{url_for('static', filename='bootstrap/js/bootstrap-switch.min.js')}}"></script>
+-->
     <script src="{{url_for('static', filename='js/echarts.min.js')}}"></script>
     <script>
         $(document).ready(function(){
+            //$(".bootstrap-switch input[type='checkbox']").bootstrapSwitch();
             var months = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
             var current = new Date();
             var year = current.getFullYear();
@@ -257,59 +293,83 @@
                     'month':month
                 },
                 success:function(response){
-                    var districts = response['districts'];
-                    var incomes = response['incomes'];
                     var targets = response['targets'];
-                    // 各分公司累计完成投资
-                    var total = [];
-                    // 各分公司累计完成率
-                    var rate = [];
-                    // 各分公司当月完成率
-                    var rate_current = [];
-                    for(var i = 0; i < districts.length(); i++){
-                        var sum = 0;
-                        for(var m = 0; m < incomes.length(); m++){
-                            sum += incomes[m][i];
-                        }
-                        total.push(parseInt(sum));
-                        rate.push((sum/targets[i] * 100).toFixed(2));
-                        rate_current.push((incomes[incomes.length()-1][i]/targets[i]*100).toFixed(2));
-                    }
-                    // 排序
-
-                    if(incomes.length() > 1){
-                        // 本月收入增长率
-                        var rate_increment = [];
-                        for(var i = 0; i < districts.length(); i++){
-                            rate_increment.push((incomes[incomes.length()-1]/incomes[incomes.length()-2]*100).toFixed(2));
+                    var incomes_this_year = response['incomes_this_year'];
+                    var incomes_this_month = response['incomes_this_month'];
+                    var rate_this_month = response['rate_this_month'];
+                    var rate_increment = response['rate_increment'];
+                    var rate_this_year = response['rate_this_year'];
+                    var rate_this_year_labels = response['rate_this_year_labels'];
+                    var rate_this_month_labels = response['rate_this_month_labels'];
+                    var rate_increment_labels = response['rate_increment_labels'];
+                    // 显示信息更新
+                    $('#incomes-district-info').empty().append("<b>累计完成率前3：</b><ul><li>" + rate_this_year_labels[0] + "（" + rate_this_year[rate_this_year_labels[0]] +"%）</li><li>" + rate_this_year_labels[1] + "（"+ rate_this_year[rate_this_year_labels[1]] +"%）</li><li>" + rate_this_year_labels[2] + "（"+ rate_this_year[rate_this_year_labels[2]] +"%）</li></ul><b>本月完成率前3：</b><ul><li>" + rate_this_month_labels[0] + "（" + rate_this_month[rate_this_month_labels[0]] +"%）</li><li>" + rate_this_month_labels[1] + "（"+ rate_this_month[rate_this_month_labels[1]] +"%）</li><li>" + rate_this_month_labels[2] + "（"+ rate_this_month[rate_this_month_labels[2]] +"%）</li></ul><b>同比增长前3：</b><ul><li>" + rate_increment_labels[0] + "（" + rate_increment[rate_increment_labels[0]] +"%）</li><li>" + rate_increment_labels[1] + "（"+ rate_increment[rate_increment_labels[1]] +"%）</li><li>" + rate_increment_labels[2] + "（"+ rate_increment[rate_increment_labels[2]] +"%）</li></ul>");
+                    // 累计收入视图按累计完成率由高到低展示
+                    var business_types = [];
+                    for(var btype in incomes_this_year[rate_this_year_labels[0]]){
+                        if(btype != '合计'){
+                            business_types.push(btype);
                         }
                     }
+                    var stack_data = [];
+                    for(var i in business_types){
+                        var btype = business_types[i];
+                        var data = [];
+                        for(var d in rate_this_year_labels){
+                            var district = rate_this_year_labels[d];
+                            data.push(incomes_this_year[district][btype]);
+                        }
+                        stack_data.push({name:btype, type:'bar', barWidth:'50%', stack:'业务收入', data:data});
+                    }
+                    // 数据集中加入完成率
+                    rate_data = [];
+                    for(var d in rate_this_year_labels){
+                        var district = rate_this_year_labels[d];
+                        rate_data.push(rate_this_year[district]);
+                    }
 
+                    stack_data.push({name:'累计完成率', type:'line', yAxisIndex:1, data:rate_data});
+                    var option = {
+                        tooltip:{
+                            trigger:'axis',
+                            axisPointer:{
+                                type:'cross',
+                                crossStyle:{
+                                    color:'#999'
+                                }
+                            }
+                        },
+                        legend:{
+                            data: business_types,
+                        },
+                        xAxis:[
+                            {
+                                type:'category',
+                                data:rate_this_year_labels
+                            }
+                        ],
+                        yAxis:[
+                            {
+                                type:'value',
+                                name:'业务收入/万元'
+                            },
+                            {
+                                type:'value',
+                                name:'完成率（%）',
+                                splitLine: false,
+                                min:Math.floor(rate_data[rate_data.length-1] / 2),
+                                max:Math.ceil(rate_data[0] + 5)
+                            }
+                        ],
+                        series:stack_data
+                    };
+                    var incomes_district_chart_current = echarts.init(document.getElementById('incomes-district-chart-current'));
+                    incomes_district_chart_current.setOption(option);
+                    // 本月累计视图按照
                 }
             });
         }
 
-        // 对一个数组排序，返回排序后各元素在原数组中的索引
-        function sorted_index(arr){
-            var indexes = [];
-            for(var i = 0; i < arr.length(); i++){
-                indexes.push(i);
-            }
-            // 冒泡排序，降序
-            for(var i = 0; i < arr.length() - 1; i++){
-                for(var j = i+1; j < arr.length(); j++){
-                    if(arr[i] < arr[j]){
-                        var temp = arr[i];
-                        var temp_index = indexes[i];
-                        arr[i] = arr[j];
-                        indexes[i] = indexes[j];
-                        arr[j] = temp;
-                        indexes[j] = temp_index;                        
-                    }
-                }
-            }
-            return indexes;
-        }
         // 按业务类型显示每月收入分布情况，默认显示当前月份
         function display_income_business(year, month){
             if(month == 0){

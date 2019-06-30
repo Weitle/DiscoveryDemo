@@ -1,8 +1,58 @@
 {%extends 'base.html'%}
+{%block style%}
+    <link rel="stylesheet" href="{{url_for('static', filename='bootstrap/css/bootstrap-switch.min.css')}}">
+{%endblock%}
 {%block content%}
     <div class="container">
         <h1 class="page-header">
             收入预测
         </h1>
+        <h2>Bottstrap Switch 基本示例</h2>
+        <form action="">
+            <div class="bootstrap-switch">
+                <input type="checkbox" name="my-checkbox" checked/>
+            </div>
+        </form>
+        <h2>Bootstrap Switch 尺寸示例</h2>
+        <form action="" id="switchSize">
+            <div class="bootstrap-switch bootstrap-switch-large">
+                <input type="checkbox" checked/>
+            </div>
+            <div class="bootstrap-switch">
+                <input type="checkbox" checked/>
+            </div>
+            <div class="bootstrap-switch bootstrap-switch-small">
+                <input type="checkbox" checked/>
+            </div>
+            <div class="bootstrap-switch bootstrap-switch-mini">
+                <input type="checkbox" checked/>
+            </div>
+        </form>
+        <h2>Bootstrap Switch 文本和颜色示例</h2>
+        <form action="" id="switchText">
+            <div class="bootstrap-switch">
+                <input type="checkbox" checked data-on-text="累计" data-off-text="本月" data-on-color="primary" data-off-color="danger">
+            </div>
+        </form>
+        <h2>Bootstrap Switch 事件处理</h2>
+        <form action="" id="switchEvent">
+            <div class="bootstrap-switch">
+                <input type="checkbox" checked data-on-text="累计" data-off-text="本月" data-on-color="primary" data-off-color="danger">
+            </div>
+        </form>
     </div>
+{%endblock%}
+{%block script%}
+    <script src="{{url_for('static', filename='bootstrap/js/bootstrap-switch.min.js')}}"></script>
+    <script>
+        $("[name='my-checkbox']").bootstrapSwitch();
+        $("#switchSize input[type=checkbox]").bootstrapSwitch();
+        $("#switchText input[type=checkbox]").bootstrapSwitch();
+        $("#switchEvent input[type=checkbox").bootstrapSwitch().on('switchChange.bootstrapSwitch', function(event, state){
+            console.log(this);
+            console.log(event);
+            console.log(state);
+            console.log($(this).attr('data-on-text'));
+        });
+    </script>
 {%endblock%}
