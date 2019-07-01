@@ -38,21 +38,18 @@
     </form>
 -->
     <div class="row" style="margin-top: 15px;">
-        <div class="col-md-9">
-            <ul class="nav nav-tabs" role="tablist">
-                <li role="presentation" class="active"><a href="#incomes-district-current" aria-controls="incomes-district-current" role="tab" data-toggle="tab">累计收入</a></li>
-                <li role="presentation"><a href="#incomes-district-this-month" aria-controls="incomes-district-this-month" role="tab" data-toggle="tab">本月收入</a></li>
+        <div class="col-md-10">
+            <ul class="nav nav-tabs" role="tablist" id="incomes-district-tabs">
+                <li role="presentation" class="active"><a href="#incomes-district-chart-current" aria-controls="incomes-district-chart-current" role="tab" data-toggle="tab">累计收入</a></li>
+                <li role="presentation"><a href="#incomes-district-chart-this-month" aria-controls="incomes-district-chart-this-month" role="tab" data-toggle="tab">本月收入</a></li>
             </ul>
             <div class="tab-content">
-                <div class="tab-pane active" id="incomes-district-current" role="tabpanel">
-                    <div style="width:100%;height: 400px;" id="incomes-district-chart-current"></div>
+                <div class="tab-pane active" id="incomes-district-chart-current" style="width:100%;height:400px;" role="tabpanel">累计收入
                 </div>
-                <div class="tab-pane" id="incomes-district-this-month" role="tabpanel">
-                    <div style="width:100%;height: 400px;" id="incomes-district-chart-this-month"></div>
-                </div>
+                <div class="tab-pane" id="incomes-district-chart-this-month" style="width:100%;height:400px;" role="tabpanel">本月收入</div>
             </div>
         </div>
-        <div class="col-md-3" style="height: 400px;" id="incomes-district-info"></div>
+        <div class="col-md-2" style="height: 400px;" id="incomes-district-info"></div>
     </div>
     <h2>各业务收入完成情况</h2>
     <!--
@@ -108,6 +105,7 @@
             display_income_district(year, month);
             
             display_income_business(year, month);
+
         });
         // 显示本年度每月公司整体收入及累计完成情况
         function display_income(year, month){
@@ -263,7 +261,16 @@
                                 data: rate_monthly,
                                 type: 'line',
                                 smooth: true,
-                                yAxisIndex: 1
+                                yAxisIndex: 1,
+                                itemStyle:{
+                                    normal:{
+                                        label:{
+                                            show:true,
+                                            color:'white',
+                                            formatter:'{c}%'
+                                        }
+                                    }
+                                }
                             }
                         ]
                     };
@@ -296,6 +303,7 @@
                     var targets = response['targets'];
                     var incomes_this_year = response['incomes_this_year'];
                     var incomes_this_month = response['incomes_this_month'];
+                    var incomes_last_month = response['incomes_last_month'];
                     var rate_this_month = response['rate_this_month'];
                     var rate_increment = response['rate_increment'];
                     var rate_this_year = response['rate_this_year'];
@@ -363,9 +371,84 @@
                         ],
                         series:stack_data
                     };
-                    var incomes_district_chart_current = echarts.init(document.getElementById('incomes-district-chart-current'));
+                    
+                    
+                    // 生成本月收入视图数据
+                    var stack_data_month = [];
+                    //var stack_data_last_month = [];
+                    for(var i in business_types){
+                        var btype = business_types[i];
+                        var data = [];
+                        var data_last = [];
+                        for(var d in rate_increment_labels){
+                            var district = rate_increment_labels[d];
+                            data.push(incomes_this_month[district][btype]);
+                            data_last.push(incomes_last_month[district][btype]);
+                        }
+                        stack_data_month.push({name:btype, type:'bar', barWidth:'40%', stack:'上月收入', data:data_last, barGap:0});
+                       stack_data_month.push({name:btype, type:'bar', barWidth:'40%', stack:'本月收入', data:data, barGap:0});
+                    }
+                    // 数据集中加入本月收入增长率
+                    rate_data_increment = [];
+                    for(var d in rate_increment_labels){
+                        var district = rate_increment_labels[d];
+                        rate_data_increment.push((rate_increment[district]).toFixed(2));
+                    }
+                    stack_data_month.push({name:'收入增长率', type:'line', yAxisIndex:1, data:rate_data_increment});
+                    //console.log(stack_data_this_month);
+                    //stack_data.push({name:'累计完成率', type:'line', yAxisIndex:1, data:rate_data});
+                    var option_this_month = {
+                        legend:{
+                            data: business_types,
+                        },
+                        tooltip:{
+                            trigger:'axis',
+                            axisPointer:{
+                                type:'cross',
+                                crossStyle:{
+                                    color:'#999'
+                                }
+                            }
+                        },
+                        legend:{
+                            data: business_types,
+                        },
+                        xAxis:[
+                            {
+                                type:'category',
+                                data:rate_increment_labels
+                            }
+                        ],
+                        yAxis:[
+                            {
+                                type:'value',
+                                name:'收入/万元'
+                            },
+                            {
+                                type:'value',
+                                name:'增长率（%）',
+                                splitLine: false,
+                            }
+                        ],
+                        series:stack_data_month
+                    };
+
+                    var $tab_current = document.getElementById('incomes-district-chart-current');
+                    $tab_month = document.getElementById('incomes-district-chart-this-month');
+
+                    var incomes_district_chart_current = echarts.init($tab_current);
                     incomes_district_chart_current.setOption(option);
-                    // 本月累计视图按照
+                    // 本月收入视图，按照本月收入增长率排名展示
+                    $('a[data-toggle="tab"]').on('shown.bs.tab', function(e){
+                        var activeTab = $(e.target)[0].hash;
+                        if(activeTab == '#incomes-district-chart-this-month'){
+                            echarts.dispose($tab_month);
+                            var incomes_district_chart_this_month = echarts.init($tab_month);
+                            incomes_district_chart_this_month.setOption(option_this_month, true);
+                        }
+
+                    });
+                    
                 }
             });
         }
