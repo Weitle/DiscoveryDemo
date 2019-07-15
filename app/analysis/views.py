@@ -51,11 +51,11 @@ def get_income_district_monthly():
     for district in targets:
         rate_this_month[district] = round(incomes_this_month[district]['合计']/targets[district]*10000)/100
         rate_this_year[district] = round(incomes_this_year[district]['合计']/targets[district]*10000)/100
-        rate_increment[district] = round(incomes_this_month[district]['合计']/incomes_last_month[district]['合计']*10000-10000)/100
+        rate_increment[district] = round(incomes_this_month[district]['合计']/incomes_last_month[district]['合计']*10000)/100
     rate_this_year_labels = get_labels_order(rate_this_year)
     rate_this_month_labels = get_labels_order(rate_this_month)
-    rate_increment_labels = get_labels_order(rate_increment)
-    return jsonify({'targets':targets, 'incomes_this_year':incomes_this_year, 'incomes_this_month':incomes_this_month, 'incomes_last_month':incomes_last_month, 'rate_this_year':rate_this_year, 'rate_this_month':rate_this_month, 'rate_increment':rate_increment, 'rate_this_year_labels':rate_this_year_labels, 'rate_this_month_labels':rate_this_month_labels, 'rate_increment_labels':rate_increment_labels})
+    rate_increment_labels = get_labels_order(rate_increment)  
+    return jsonify({'targets':targets, 'incomes_this_year':incomes_this_year, 'incomes_this_month':incomes_this_month, 'incomes_lat_month':incomes_last_month, 'rate_this_year':rate_this_year, 'rate_this_month':rate_this_month, 'rate_increment':rate_increment, 'rate_this_year_labels':rate_this_year_labels, 'rate_this_month_labels':rate_this_month_labels, 'rate_increment_labels':rate_increment_labels})
 
 def get_targets_by_year(year):
     #total = income_target[year]
