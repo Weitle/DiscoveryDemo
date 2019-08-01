@@ -1,0 +1,51 @@
+{%extends 'base.html'%}
+{%block style%}
+    <link rel="stylesheet" href="{{url_for('static', filename='bootstrap/css/bootstrap-datetimepicker.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='fileinput/css/fileinput.min.css')}}">
+{%endblock%}
+{%block content%}
+    <h1 class="page-header">收入录入 <small><a href="{{url_for('static', filename='templates/收入录入模板.xlsx')}}" class="btn btn-link">下载模板</a></small></h1>
+    <h5 class="text-danger">请先<a href="{{url_for('static', filename='templates/收入录入模板.xlsx')}}">下载收入录入模板</a>，填写各专业收入数据后选择账期上传。</h5>
+    <form class="form-horizontal" style="margin-top:25px;" method="POST" accept="{{url_for('admin.addincomes')}}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+        <div class="form-group">
+            <label for="income_month" class="control-label col-sm-2">账期</label>
+            <div class="col-sm-8">
+                <input type="text" name="income_month" id="income_month" class="form-control"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="income_file" class="control-label col-sm-2">上传收入</label>
+            <div class="col-sm-8">
+                <input type="file" name="income_file" id="income_file" class="form-control"/>
+            </div>
+        </div>
+    </form>
+{%endblock%}
+{%block script%}
+    <script src="{{url_for('static', filename='bootstrap/js/bootstrap-datetimepicker.min.js')}}" charset="utf-8"></script>
+    <script src="{{url_for('static', filename='fileinput/js/fileinput.min.js')}}"></script>
+    <script>
+        $(document).ready(function(){
+            $('#income_month').datetimepicker({
+                format:'yyyymm',
+                todayBtn:true,
+                autoclose:true,
+                endDate:new Date(),
+                startView:'year',
+                maxView:'year',
+                minView:'year'
+            });
+            $('#income_file').fileinput({
+                maxFileSize: 20480,
+                allowedFileExtensions: ['xlsx', 'xls'],
+                dropZoneEnabled:false,
+                showPreview:false,
+                browseLabel:'浏览文件',
+                removeLabel:'移除',
+                uploadLabel:'上传'
+            });
+        });
+        
+    </script>
+{%endblock%}

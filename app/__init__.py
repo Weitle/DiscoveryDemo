@@ -23,20 +23,19 @@ def create_app():
     csrf.init_app(app)
     
     # 注册蓝图
-    from app.auth import auth as auth
+    from .auth import auth as auth
     app.register_blueprint(auth)
-    from app.forecast import forecast
+    from .forecast import forecast
     app.register_blueprint(forecast)
-    from app.competition import competition
+    from .competition import competition
     app.register_blueprint(competition)
-    from app.indicator import indicator
+    from .indicator import indicator
     app.register_blueprint(indicator)
-    from app.admin import admin
+    from .admin import admin
     app.register_blueprint(admin)
-    from app.analysis import analysis
+    from .analysis import analysis
     app.register_blueprint(analysis)
-
-    #from app.api import api as api
-    #app.register_blueprint(api)
+    from .api import api
+    app.register_blueprint(api)
 
     return app

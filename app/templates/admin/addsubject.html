@@ -4,32 +4,92 @@
 {%endblock%}
 {%block content%}
     <h1 class="page-header">添加收入科目</h1>
-    <form action="" class="form-horizontal">
+    <form action="{{url_for('admin.addsubject')}}" class="form-horizontal" method="POST" id="addForm">
+        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
         <div class="form-group">
-            <label for="name" class="col-sm-2 control-label">科目名称</label>
-            <div class="col-sm-8">
+            <label for="name" class="col-sm-3 control-label">科目名称</label>
+            <div class="col-sm-6">
                 <input type="text" name="name" id="name" class="form-control">
+                <span class="text-danger"></span>
             </div>
         </div>
         <div class="form-group">
-            <label for="name" class="col-sm-2 control-label">上一层级</label>
-            <div class="col-sm-8">
-                <input type="text" name="name" id="name" class="form-control">
+            <label for="sname" class="col-sm-3 control-label">上一层级科目名称</label>
+            <div class="col-sm-6">
+                {%if sname%}
+                    <input type="text" name="sname" id="sname" class="form-control" value="{{sname}}" readonly>
+                {%else%}
+                    <input type="text" name="sname" id="sname" class="form-control">
+                {%endif%}
+                <span class="text-danger"></span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-offset-3 col-sm-6">
+                <input type="submit" class="btn btn-default" value="添加">
             </div>
         </div>
     </form>
-    <div id="jstree_demo">
-        <ul>
-            <li>Root node 1</li>
-            <li>Root node 2</li>
-        </ul>
     </div>
 {%endblock%}
 {%block script%}
-    <script src="{{url_for('static', filename='jstree/jstree.min.js')}}"></script>
     <script>
         $(function(){
-            $('#jstree_demo').jstree();
+            $('#name, #sname').focus(function(){
+                $(this).next('.text-danger').text();
+            });
+            $('#addForm').submit(function(){
+                var flag = true;
+                // 层级名称校验
+                var name = $.trim($('#name').val());
+                var sname = $.trim($('#sname').val());
+                if(name == ''){
+                    $('#name').next('.text-danger').empty().text("新增收入科目名称不能为空。");
+                    flag = false;
+                }
+                else {
+                    // 新增收入科目不能已存在
+                    $.ajax({
+                        url: "{{url_for('api.exists_subject')}}",
+                        type:'POST',
+                        async:false,
+                        data:{"subject":name},
+                        headers:{
+                            "X-CSRFToken":"{{csrf_token()}}"
+                        },
+                        dataType:'json',
+                        success:function(res){
+                            var exists = res['exists'];
+                            if(exists){
+                                $('#name').next('.text-danger').empty().text("新增收入科目名称已存在。");
+                                flag = false;
+                            }
+                        }
+                    });
+                }
+                // 上一层级科目名称可以为空，为空时添加的是最高层级的收入科目
+                if(sname != ''){
+                    // 上一层级科目名称必须已经存在
+                    $.ajax({
+                        url: "{{url_for('api.exists_subject')}}",
+                        type:'POST',
+                        async:false,
+                        data:{"subject":sname},
+                        headers:{
+                            "X-CSRFToken":"{{csrf_token()}}"
+                        },
+                        dataType:'json',
+                        success:function(res){
+                            var exists = res['exists'];
+                            if(!exists){
+                                $('#sname').next('.text-danger').empty().text("上一层科目名称不存在。");
+                                flag = false;
+                            }
+                        }
+                    });
+                }
+                return flag;
+            });
         });
     </script>
 {%endblock%}
