@@ -1,3 +1,35 @@
 {%extends 'base.html'%}
 {%block content%}
+    <div id="total_incomes" data="{{total_incomes}}" style="display:none;"></div>
+    <div id="incomes_month" data="{{incomes_month}}" style="display:none;"></div>
+    <!-- 展示本月各专业收入 -->
+    <div class="row">
+        <!--总结性文字描述部分-->
+        <div class="col-md-3 col-sm-3" id="total_incomes_text">
+        </div>
+        <!--图表展示部分-->
+        <div class="col-md-9 col-sm-9">
+        </div>
+    </div>
+    <!-- 展示本年主营业务收入变化趋势 -->
+
+{%endblock%}
+{%block script%}
+    <script src="{{url_for('static', filename='js/echarts.min.js')}}"></script>
+    <script>
+        $(function(){
+            var total_incomes = $("#total_incomes").attr("data");
+            var incomes_month = $("#incomes_month").attr("data");
+            var total = 0;
+            var total_incomes_title = [];
+            var total_incomes_data = [];
+            for(var total_income in toal_incomes){
+                var income = parseFloat(total_income[1].toFixed(2));
+                total += income;
+                total_incomes_title.push(total_incomes[0]);
+                total_incomes_data.push(income);
+            }
+        });
+        
+    </script>
 {%endblock%}

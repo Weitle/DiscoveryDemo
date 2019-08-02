@@ -1,8 +1,6 @@
-#from app.db import db
+from app.db import db
 
 from sqlalchemy.dialects.mysql import INTEGER, SMALLINT, TINYINT, DOUBLE
-
-from .db import db
 
 class Product(db.Model):
     __tablename__ = "products"
@@ -106,6 +104,6 @@ class Income(db.Model):
     # 收入科目
     subject = db.Column(SMALLINT(unsigned=True), db.ForeignKey('income_types.id'), primary_key=True)
     # 收入
-    income = db.Column(DOUBLE(), default=0.0)
+    income = db.Column(DOUBLE(16, 2), default=0.0)
     # 税额
-    tax = db.Column(DOUBLE(), default=0.0)
+    tax = db.Column(DOUBLE(16, 2), default=0.0)
