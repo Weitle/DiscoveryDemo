@@ -5,30 +5,107 @@
     <!-- 展示本月各专业收入 -->
     <div class="row">
         <!--总结性文字描述部分-->
-        <div class="col-md-3 col-sm-3" id="total_incomes_text">
+        <div class="col-md-3 col-sm-3" id="incomes_month_text" style="height:300px;">
         </div>
         <!--图表展示部分-->
-        <div class="col-md-9 col-sm-9">
+        <div class="col-md-9 col-sm-9" id="incomes_month_chart" style="height:300px;">
         </div>
     </div>
+    <p style="margin:15px 0;">各专业收入口径解释：</p>
     <!-- 展示本年主营业务收入变化趋势 -->
-
+    <div class="row">
+        <!--图表展示部分-->
+        <div class="col-md-9 col-sm-9" id="total_incomes_chart" style="height:300px;">
+        </div>
+        <!--总结性文字描述部分-->
+        <div class="col-md-3 col-sm-3" id="total_incomes_text" style="height:300px;">
+        </div>
+        
+    </div>
 {%endblock%}
 {%block script%}
     <script src="{{url_for('static', filename='js/echarts.min.js')}}"></script>
     <script>
         $(function(){
-            var total_incomes = $("#total_incomes").attr("data");
-            var incomes_month = $("#incomes_month").attr("data");
+            // 获取本年度各月主营业务收入数据
+            var total_incomes = JSON.parse($("#total_incomes").attr("data"));
+            var total_incomes_data = total_incomes['total_incomes'];
+            var total_incomes_title = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
             var total = 0;
-            var total_incomes_title = [];
-            var total_incomes_data = [];
-            for(var total_income in toal_incomes){
-                var income = parseFloat(total_income[1].toFixed(2));
+            total_incomes_data.forEach(function(income, index, arr){
+                arr[index] = parseFloat((arr[index]/10000).toFixed(1));
                 total += income;
-                total_incomes_title.push(total_incomes[0]);
-                total_incomes_data.push(income);
-            }
+            });
+            // 获取本月各专业收入
+            var incomes_month = JSON.parse($("#incomes_month").attr("data"));
+            var incomes_month_data = incomes_month["incomes_month"];
+            var incomes_month_title = [];
+            var incomes_current = [];
+            incomes_month_data.forEach(function(data, index, arr){
+                incomes_month_title.push(data[1]);
+                incomes_current.push(parseFloat((data[2]/10000).toFixed(2)));
+            });
+            // 本月各专业收入
+            $('#incomes_month_text').empty().append("<h3>本月收入: <small>" + total_incomes_data[total_incomes_data.length-1] + "万</small></h3>");
+            incomes_month_title.forEach(function(title, index, arr){
+                $('#incomes_month_text').append("<p>" + title + ": <span class='text-info'><b>" + incomes_current[index] + "</b></span></p>");
+            });
+            var incomes_month_chart = echarts.init(document.getElementById('incomes_month_chart'));
+            var incomes_month_option = {
+                grid:{
+                    left:'10%',
+                    right:'5%',
+                    top:'5%',
+                    bottom:'10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: incomes_month_title,
+                    axisLabel:{
+                        fontSize:10,
+                        rotate: -10
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: incomes_current,
+                    type: 'bar',
+                    label:{
+                        show:true,
+                        position:'top'
+                    }
+                }]
+            };
+            incomes_month_chart.setOption(incomes_month_option);
+            // 主营业务收入趋势展示
+            $('#total_incomes_text').empty().append("<h3>主营业务收入</h3><p>本月主营业务收入：<span class='text-info'><b>" + total_incomes_data[total_incomes_data.length-1] + "</b></span> 万</p><p>本年累计主营业务收入：<span class='text-info'><b>" + (total/10000).toFixed(2) + "</b></span> 万</p>");
+            var total_incomes_chart = echarts.init(document.getElementById('total_incomes_chart'));
+            var total_incomes_option = {
+                grid:{
+                    left:'10%',
+                    right:'5%',
+                    top:'5%',
+                    bottom:'10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: total_incomes_title
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                
+                series: [{
+                    data: total_incomes_data,
+                    type: 'line',
+                    label:{
+                        show:true
+                    }
+                }]
+            };
+            total_incomes_chart.setOption(total_incomes_option);
         });
         
     </script>

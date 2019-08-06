@@ -1,8 +1,9 @@
 import os
 import random
+import json
 
 from datetime import datetime
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, jsonify
 from sqlalchemy import func, and_, desc
 import xlsxwriter, xlrd
 
@@ -70,12 +71,18 @@ def addsubject():
 @admin.route('/incomes')
 def incomes():
     # 根据账期获取各专业收入
-    acct_month = "201906"
+    acct_month = "201907"
     acct_year = "2019"
-    total_incomes = db.session.query(Income.acct_month, Income.income).filter(and_(Income.acct_month.like(acct_year + '%'), IncomeType.level==0, Income.subject==IncomeType.id)).all()
+    total_incomes = []
+    total_incomes_res = db.session.query(Income.income).filter(and_(Income.acct_month.like(acct_year + '%'), IncomeType.level==0, Income.subject==IncomeType.id)).all()
+    for res in total_incomes_res:
+        total_incomes.append(float(res[0]))
     #subject_incomes = db.session.query(Income.acct_month, Income.subject, IncomeType.name, IncomeType.level, Income.income, Income.tax).filter(and_(Income.subject==IncomeType.id, IncomeType.level<=1, Income.acct_month.like(acct_year+'%'))).order_by(desc(Income.acct_month), Income.subject).all()
-    incomes_month = db.session.query(Income.subject, IncomeType.name, Income.income, Income.tax).filter(and_(Income.subject==IncomeType.id, IncomeType.level==1, Income.acct_month==acct_month)).all()
-    return render_template('admin/incomes.html', total_incomes=total_incomes, incomes_month=incomes_month)
+    incomes_month_res = db.session.query(Income.subject, IncomeType.name, Income.income, Income.tax).filter(and_(Income.subject==IncomeType.id, IncomeType.level==1, Income.acct_month==acct_month)).all()
+    incomes_month = []
+    for res in incomes_month_res:
+        incomes_month.append([res[0], res[1], float(res[2]), float(res[3])])
+    return render_template('admin/incomes.html', total_incomes=json.dumps({"total_incomes":total_incomes}), incomes_month=json.dumps({"incomes_month":incomes_month}))
 
 @admin.route("/addincomes", methods=['GET', 'POST'])
 def addincomes():
@@ -234,15 +241,15 @@ def get_subject_by_name(name):
     subject = IncomeType.query.filter_by(name=name).first()
     return subject
 
-#@admin.route('/generate_incomes')
-#def generate_incomes():
-#    incomes = db.session.query(Income.subject, Income.income, Income.tax).filter(and_(Income.acct_month=="201905", IncomeType.level>=2, Income.subject==IncomeType.id)).all()
-#    months = ["201901", "201902", "201903", "201904", "201906"]
-#    for month in months:
-#        for record in incomes:
-#            income = float(record[1]) * (1 + random.randint(0, 100)/1000)
-#            tax = float(record[2]) * (1 + random.randint(0, 100)/1000)
-#            subject_income = Income(acct_month=month, subject=record[0], income=income, tax=tax)
-#            db.session.add(subject_income)
-#        db.session.commit()
-#        add_supincomes(month)
+@admin.route('/generate_incomes')
+def generate_incomes():
+    incomes = db.session.query(Income.subject, Income.income, Income.tax).filter(and_(Income.acct_month=="201905", IncomeType.level>=2, Income.subject==IncomeType.id)).all()
+    months = ["201901", "201902", "201903", "201904", "201906", "201907"]
+    for month in months:
+        for record in incomes:
+            income = float(record[1]) * (1 + random.randint(0, 100)/1000)
+            tax = float(record[2]) * (1 + random.randint(0, 100)/1000)
+            subject_income = Income(acct_month=month, subject=record[0], income=income, tax=tax)
+            db.session.add(subject_income)
+        db.session.commit()
+        add_supincomes(month)
